@@ -4,3 +4,8 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"  # Required for Next.js compatibility
+  [plugins.inputs]
+    # Enable Next.js 13+ App Router support
+    appDir = true
+    # Enable incremental static regeneration
+    enableISR = true
