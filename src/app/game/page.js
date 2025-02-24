@@ -2,11 +2,18 @@
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import MemoryGame from "@/app/games/memory/page";
 
 export default function GamePage() {
-  const router = useRouter();
-  const { gameId } = router.query;
-  const GameComponent = dynamic(() => import(`../../games/${gameId}/page`));
+  //const router = useRouter();
+  //const { gameId } = router.query;
+  /*
+  const GameComponent = dynamic(() => import(`../../games/${gameId}/page`), {
+    loading: () => <p>Loading...</p>,
+    ssr: false, // Disable server-side rendering if needed
+  });*/
+
+  return(<h1>Hello</h1>)
 
   return (
     <div className="min-h-screen p-8 bg-gray-100">
@@ -16,7 +23,7 @@ export default function GamePage() {
             ← Back to Home
           </a>
         </Link>
-        {GameComponent && <GameComponent />}
+        {/*GameComponent && <MemoryGame />*/}
       </div>
     </div>
   );

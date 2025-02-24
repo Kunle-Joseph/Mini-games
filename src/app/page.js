@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Link from "next/link";
 
 export default function Home() {
@@ -8,24 +8,30 @@ export default function Home() {
   ];
 
   return (
-    <div >
+    <div>
       <h1 className="text-4xl font-bold mb-8">Mini-Games</h1>
 
-      <div >
-        {games.map((game) => (
+      <div>
+        {/*
+          games.map((game) => (
           <Link
             key={game.id}
-            href={`/game/${game.id}`}
+            href={`/games/memory`}
           >
             <h2 >{game.name}</h2>
           </Link>
-        ))}
+        ))*/}
+        <Link href={`/games/memory`}>
+          <h2>Memory Game</h2>
+        </Link>
+        <Link href={`/games/quick`}>
+          <h2>Quick Click Game</h2>
+        </Link>
       </div>
 
-      <div >
+      <div>
         <Link
           href="/leaderboard"
-          className="inline-block mt-4 px-4 py-2 bg-green-500 text-white rounded"
         >
           View Leaderboard
         </Link>
