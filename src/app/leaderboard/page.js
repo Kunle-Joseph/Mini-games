@@ -1,32 +1,36 @@
-"use client"; // Required for client-side components
+"use client";
+//leaderboard
+//TODO: find out how to launch website
 import { useState, useEffect } from "react";
 import Link from "next/link";
-
-
+import PocketBase from "pocketbase";
+const pb = new PocketBase("http://127.0.0.1:8090");
 
 export default function Leaderboard() {
   const [leaderboards, setLeaderboards] = useState({
     memory: [],
     quick: [],
     trivia: [],
+    snake: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchLeaderboard = async (gameId) => {
     try {
-      const response = await fetch(
-        `/.netlify/functions/get-leaderboard?game=${gameId}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${gameId} leaderboard`);
-      }
-
-      return await response.json();
+      let record = await pb.collection(gameId).getFullList();
+      if( gameId == "memory"  || gameId == "quick")
+        record.sort((a, b) => a.score - b.score);
+      else record.sort((a, b) => b.score - a.score);
+      return record.map((record) => ({
+        username: record.id,
+        score: record.score,
+        time: record.time,
+      }));
     } catch (error) {
-      console.error(`Error fetching ${gameId} leaderboard:`, error);
-      return [];
+      throw new Error(
+        `Error fetching leaderboard for ${gameId}: ${error.message}`
+      );
     }
   };
 
@@ -34,17 +38,17 @@ export default function Leaderboard() {
     const loadData = async () => {
       try {
         setLoading(true);
-
-        const [memory, quick, trivia] = await Promise.all([
+        const [memory, quick, trivia, snake] = await Promise.all([
           fetchLeaderboard("memory"),
           fetchLeaderboard("quick"),
           fetchLeaderboard("trivia"),
+          fetchLeaderboard("snake"),
         ]);
-
         setLeaderboards({
-          memory: memory.slice(0, 10), // Get top 10 scores
+          memory: memory.slice(0, 10),
           quick: quick.slice(0, 10),
           trivia: trivia.slice(0, 10),
+          snake: snake.slice(0, 10),
         });
       } catch (error) {
         setError(error.message);
@@ -52,70 +56,63 @@ export default function Leaderboard() {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
-  if (error) {
-    return (
-      <div className="min-h-screen p-8 text-center">
-        <h2 className="text-red-500 text-xl mb-4">Error: {error}</h2>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen p-8 text-center">
-        <h2 className="text-xl">Loading leaderboards...</h2>
-        <div className="mt-4 animate-spin inline-block w-8 h-8 border-4 border-blue-500 rounded-full"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-yellow-100 text-yellow-900 p-8 text-center">
+        <h2 className="text-2xl font-semibold">Loading leaderboards...</h2>
+        <div className="mt-4 animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen bg-yellow-100 text-yellow-900 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Global Leaderboards</h1>
+          <h1 className="text-5xl font-extrabold text-yellow-800">
+            Global Leaderboards
+          </h1>
           <Link
             href="/"
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+            className="px-6 py-3 bg-yellow-300 text-yellow-900 font-semibold rounded-xl hover:bg-yellow-400 transition"
           >
             ← Back to Games
           </Link>
         </div>
-
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {Object.entries(leaderboards).map(([gameId, scores]) => (
-            <div key={gameId} className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-semibold mb-4">
+            <div
+              key={gameId}
+              className="bg-yellow-200 p-6 rounded-2xl shadow-md"
+            >
+              <h2 className="text-3xl font-semibold text-yellow-800 mb-4">
                 {gameId.charAt(0).toUpperCase() + gameId.slice(1)}
               </h2>
-
+              <h4 className="text-sm text-yellow-700 mb-4">
+                {(gameId == "memory" || gameId == "quick") && (
+                  <div>For these games, the lower score is the better ones</div>
+                ) }
+              </h4>
               <div className="space-y-2">
                 {scores.length > 0 ? (
                   scores.map((entry, index) => (
                     <div
                       key={`${gameId}-${entry.name}-${entry.score}`}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                      className="flex justify-between items-center p-3 bg-yellow-300 rounded-xl"
                     >
-                      <span className="font-medium">
-                        {index + 1}. {entry.name}
+                      <span className="font-medium text-yellow-900">
+                        {index + 1}. {entry.username}
                       </span>
-                      <span className="text-blue-600 font-semibold">
+                      <span className="text-yellow-800 font-bold">
                         {entry.score}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">
+                  <p className="text-yellow-700 text-center py-4">
                     No scores yet!
                   </p>
                 )}
@@ -126,4 +123,18 @@ export default function Leaderboard() {
       </div>
     </div>
   );
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-yellow-100 text-yellow-900 p-8 text-center">
+        <h2 className="text-red-600 text-2xl font-bold mb-4">Error: {error}</h2>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 }

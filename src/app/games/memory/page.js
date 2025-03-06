@@ -1,19 +1,23 @@
 "use client";
+//memory game
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import PocketBase from "pocketbase";
+const pb = new PocketBase("http://127.0.0.1:8090");
 
-// Card emojis (needs even number of pairs)
 const cardSymbols = ["🎮", "👾", "🕹️", "🎯", "🎲", "🏆", "👻", "🤖"];
 
 export default function MemoryGame() {
   const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
-  const [moves, setMoves] = useState(0);
+  const [moves, setMoves] = useState(0); // score
   const [gameWon, setGameWon] = useState(false);
   const [name, setName] = useState("");
+  const [gameWonOnce, setGameWonOnce] = useState(false);
+  const [bestMoves, setBestMoves] = useState(0); //best score
+  const [duplicate, setDuplicate] = useState(false);
 
-  // Initialize game
   useEffect(() => {
     initializeGame();
   }, []);
@@ -23,6 +27,7 @@ export default function MemoryGame() {
       .sort(() => Math.random() - 0.5)
       .map((symbol, id) => ({ id, symbol }));
 
+    setName("");
     setCards(doubledCards);
     setFlipped([]);
     setMatched([]);
@@ -51,7 +56,14 @@ export default function MemoryGame() {
       if (match) {
         setMatched([...matched, firstId, secondId]);
         if (matched.length + 2 === cards.length) {
+          if (gameWonOnce == false) {
+            setBestMoves(moves);
+          }
           setGameWon(true);
+          setGameWonOnce(true);
+          if (gameWonOnce == true && moves < bestMoves) {
+            setBestMoves(moves);
+          }
         }
       }
 
@@ -59,54 +71,155 @@ export default function MemoryGame() {
     }
   };
 
+  const updateScore = async () => {
+    let trimmedName = name.trim();
+    const data = {
+      id: trimmedName,
+      score: moves,
+    };
+    try {
+      await pb.collection("memory").update(trimmedName, data);
+      setDuplicate(false);
+      initializeGame();
+      console.log("Score updated successfully");
+    } catch (error) {
+      console.error("Error updating score:", error);
+    }
+  };
+
   const submitScore = async (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+    let trimmedName = name.trim();
+    if (!trimmedName) return;
 
     try {
-      await fetch("/.netlify/functions/submit-score", {
-        method: "POST",
-        body: JSON.stringify({
-          game: "memory",
-          name: name.trim(),
-          score: moves,
-        }),
-      });
+      // Check if ID/name already exists
+      try {
+        const existingRecord = await pb
+          .collection("memory")
+          .getOne(trimmedName);
+        setDuplicate(true);
+        alert("This name is already taken! Please choose a different one.");
+        return;
+      } catch (error) {
+        if (error.status !== 404) throw error; // Only ignore "not found" errors
+      }
+
+      // Create new record if name is available
+      const data = {
+        id: trimmedName,
+        score: moves,
+      };
+
+      await pb.collection("memory").create(data);
+      console.log("Score saved successfully");
       initializeGame();
-      setName("");
     } catch (error) {
-      console.error("Score submission failed:", error);
+      console.error("Error saving score:", error);
+      alert(`Error: ${error.message}`);
     }
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-10 bg-yellow-100 flex items-center justify-center">
+      <div className="max-w-4xl w-full mx-auto p-8 bg-white rounded-xl shadow-xl">
         <Link
           href="/"
-          className="mb-4 inline-block text-blue-600 hover:text-blue-700"
+          className="mb-6 inline-block text-yellow-800 hover:text-yellow-900 text-lg font-semibold"
         >
           ← Back to Home
         </Link>
 
-        <div className="mb-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Memory Match</h1>
-          <div className="text-lg">Moves: {moves}</div>
+        {gameWonOnce && gameWon == false && (
+          <div className="bg-yellow-200 p-6 rounded-xl mb-6 shadow-md">
+            <h2 className="text-xl font-bold mb-4 text-yellow-900">
+              Best Score: {bestMoves} moves!
+            </h2>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="flex-1 p-3 rounded-lg border border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              maxLength={15}
+            />
+            <button
+              type="submit"
+              className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+              onClick={submitScore}
+            >
+              Save Best Score
+            </button>
+            {duplicate && (
+              <button
+                type="submit"
+                className="ml-2 bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+                onClick={updateScore}
+              >
+                Update Best Score
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-3xl font-extrabold text-yellow-900">
+            Memory Match
+          </h1>
+          <div className="text-lg text-yellow-800 font-medium">
+            Moves: {moves}
+          </div>
         </div>
+
+        {gameWon && (
+          <div className="bg-yellow-200 p-6 rounded-xl mb-6 shadow-md">
+            <h2 className="text-xl font-bold mb-4 text-yellow-900">
+              Congratulations! You won in {moves} moves!
+            </h2>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="flex-1 p-3 rounded-lg border border-yellow-500 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                maxLength={15}
+              />
+              <button
+                type="submit"
+                className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+                onClick={submitScore}
+              >
+                Save Score
+              </button>
+              {duplicate && (
+                <button
+                  type="submit"
+                  className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+                  onClick={updateScore}
+                >
+                  Update Best Score
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-4 gap-4 mb-8">
           {cards.map((card) => (
             <button
               key={card.id}
               onClick={() => handleCardClick(card.id)}
-              className={`aspect-square text-4xl flex items-center justify-center rounded-lg transition-all
-                ${
-                  flipped.includes(card.id) || matched.includes(card.id)
-                    ? "bg-white shadow-lg"
-                    : "bg-blue-100 hover:bg-blue-200"
-                }
-                ${matched.includes(card.id) ? "opacity-50" : ""}
-              `}
+              className={`w-32 h-28 text-3xl flex items-center justify-center rounded-lg transition-all duration-300 
+              ${
+                flipped.includes(card.id) || matched.includes(card.id)
+                  ? "bg-white shadow-md border border-yellow-400"
+                  : "bg-yellow-300 hover:bg-yellow-400"
+              } 
+              ${
+                matched.includes(card.id)
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:shadow-lg"
+              }`}
               disabled={matched.includes(card.id)}
             >
               {flipped.includes(card.id) || matched.includes(card.id)
@@ -116,33 +229,9 @@ export default function MemoryGame() {
           ))}
         </div>
 
-        {gameWon && (
-          <div className="bg-green-100 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4">
-              Congratulations! You won in {moves} moves!
-            </h2>
-            <form onSubmit={submitScore} className="flex gap-4">
-              <input
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="flex-1 p-2 rounded border"
-                maxLength={20}
-              />
-              <button
-                type="submit"
-                className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
-              >
-                Save Score
-              </button>
-            </form>
-          </div>
-        )}
-
         <button
           onClick={initializeGame}
-          className="mt-4 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+          className="mt-6 bg-yellow-500 px-6 py-3 rounded-lg hover:bg-yellow-600 font-semibold shadow-lg transition"
         >
           Reset Game
         </button>
