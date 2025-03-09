@@ -3,8 +3,11 @@
 //TODO: find out how to launch website
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import PocketBase from "pocketbase";
-const pb = new PocketBase("http://127.0.0.1:8090");
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  "https://blditodpzucmopsgyvus.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+);
 
 export default function Leaderboard() {
   const [leaderboards, setLeaderboards] = useState({
@@ -18,14 +21,15 @@ export default function Leaderboard() {
 
   const fetchLeaderboard = async (gameId) => {
     try {
-      let record = await pb.collection(gameId).getFullList();
-      if( gameId == "memory"  || gameId == "quick")
-        record.sort((a, b) => a.score - b.score);
-      else record.sort((a, b) => b.score - a.score);
-      return record.map((record) => ({
-        username: record.id,
+      let record = await supabase.from(gameId).select("*");
+      let data = record.data;
+      if (gameId == "memory" || gameId == "quick")
+        data.sort((a, b) => a.score - b.score);
+      else data.sort((a, b) => b.score - a.score);
+      console.log(data);
+      return data.map((record) => ({
+        id: record.id,
         score: record.score,
-        time: record.time,
       }));
     } catch (error) {
       throw new Error(
@@ -94,17 +98,17 @@ export default function Leaderboard() {
               <h4 className="text-sm text-yellow-700 mb-4">
                 {(gameId == "memory" || gameId == "quick") && (
                   <div>For these games, the lower score is the better ones</div>
-                ) }
+                )}
               </h4>
               <div className="space-y-2">
                 {scores.length > 0 ? (
                   scores.map((entry, index) => (
                     <div
-                      key={`${gameId}-${entry.name}-${entry.score}`}
+                      key={`${gameId}-${entry.id}-${entry.score}`}
                       className="flex justify-between items-center p-3 bg-yellow-300 rounded-xl"
                     >
                       <span className="font-medium text-yellow-900">
-                        {index + 1}. {entry.username}
+                        {index + 1}. {entry.id}
                       </span>
                       <span className="text-yellow-800 font-bold">
                         {entry.score}

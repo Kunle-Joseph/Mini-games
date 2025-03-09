@@ -2,8 +2,13 @@
 //memory game
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import PocketBase from "pocketbase";
-const pb = new PocketBase("http://127.0.0.1:8090");
+import sql from "../../../../db";
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  "https://blditodpzucmopsgyvus.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+);
+//TODO: figure out why its call a duplicate name even when theres none
 
 const cardSymbols = ["🎮", "👾", "🕹️", "🎯", "🎲", "🏆", "👻", "🤖"];
 
@@ -72,13 +77,18 @@ export default function MemoryGame() {
   };
 
   const updateScore = async () => {
+    let existingRecord = await supabase.from("memory").select("*");
     let trimmedName = name.trim();
     const data = {
       id: trimmedName,
       score: moves,
     };
     try {
-      await pb.collection("memory").update(trimmedName, data);
+      await supabase
+        .from("memory")
+        .update({ score: moves })
+        .eq("id", trimmedName)
+        .select();
       setDuplicate(false);
       initializeGame();
       console.log("Score updated successfully");
@@ -90,27 +100,46 @@ export default function MemoryGame() {
   const submitScore = async (e) => {
     let trimmedName = name.trim();
     if (!trimmedName) return;
+    {
+      if (
+        trimmedName == "vanny" ||
+        trimmedName == "Vanny" ||
+        trimmedName == "VANNY" ||
+        trimmedName == "vanessa" ||
+        trimmedName == "Vanessa" ||
+        trimmedName == "VANESSA"
+      ) {
+        alert("hey hey vanessa :)");
+      }
+      if (
+        trimmedName == "ter" ||
+        trimmedName == "Ter" ||
+        trimmedName == "TER" ||
+        trimmedName == "terence" ||
+        trimmedName == "Terence" ||
+        trimmedName == "TERENCE"
+      ) {
+        alert("kys terence");
+      }
+    }
+
+    //check if name already exists
+    if (existingRecord.data.some((record) => record.id == trimmedName)) {
+      alert(
+        "Name already exists, please try another name or update the score instead"
+      );
+      setDuplicate(true);
+      return;
+    }
 
     try {
-      // Check if ID/name already exists
-      try {
-        const existingRecord = await pb
-          .collection("memory")
-          .getOne(trimmedName);
-        setDuplicate(true);
-        alert("This name is already taken! Please choose a different one.");
-        return;
-      } catch (error) {
-        if (error.status !== 404) throw error; // Only ignore "not found" errors
-      }
-
-      // Create new record if name is available
       const data = {
         id: trimmedName,
         score: moves,
       };
 
-      await pb.collection("memory").create(data);
+      //await pb.collection("memory").create(data);
+      await supabase.from("memory").insert([data]).select();
       console.log("Score saved successfully");
       initializeGame();
     } catch (error) {
@@ -165,6 +194,10 @@ export default function MemoryGame() {
           <h1 className="text-3xl font-extrabold text-yellow-900">
             Memory Match
           </h1>
+          <p className="text-sm font-extrabold text-yellow-700">
+            {" "}
+            recommend to flip screen on mobile
+          </p>
           <div className="text-lg text-yellow-800 font-medium">
             Moves: {moves}
           </div>

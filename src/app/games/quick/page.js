@@ -2,8 +2,11 @@
 //quick game
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import PocketBase from "pocketbase";
-const pb = new PocketBase("http://127.0.0.1:8090");
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  "https://blditodpzucmopsgyvus.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+);
 
 export default function QuickClick() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -49,7 +52,11 @@ export default function QuickClick() {
       score: bestTime,
     };
     try {
-      await pb.collection("quick").update(trimmedName, data);
+      await supabase
+        .from("quick")
+        .update({ score: bestTime })
+        .eq("id", trimmedName)
+        .select();
       console.log("Score updated successfully");
       startGame();
     } catch (error) {
@@ -58,29 +65,51 @@ export default function QuickClick() {
   };
 
   const submitScore = async (e) => {
+    let existingRecord = await supabase.from("quick").select("*");
+
     if (!name.trim()) return;
     console.log(bestTime);
 
     let trimmedName = name.trim();
     if (!trimmedName) return;
+    {
+      if (
+        trimmedName == "vanny" ||
+        trimmedName == "Vanny" ||
+        trimmedName == "VANNY" ||
+        trimmedName == "vanessa" ||
+        trimmedName == "Vanessa" ||
+        trimmedName == "VANESSA"
+      ) {
+        alert("hey hey vanessa :)");
+      }
+      if (
+        trimmedName == "ter" ||
+        trimmedName == "Ter" ||
+        trimmedName == "TER" ||
+        trimmedName == "terence" ||
+        trimmedName == "Terence" ||
+        trimmedName == "TERENCE"
+      ) {
+        alert("kys terence");
+      }
+    }
+    if (existingRecord.data.some((record) => record.id == trimmedName)) {
+      alert(
+        "Name already exists, please try another name or update the score instead"
+      );
+      setSubmittedOnce(true);
+      return;
+    }
 
     try {
-      // Check if ID/name already exists
-      try {
-        const existingRecord = await pb.collection("quick").getOne(trimmedName);
-        alert("This name is already taken! Please choose a different one.");
-        return;
-      } catch (error) {
-        if (error.status !== 404) throw error; // Only ignore "not found" errors
-      }
-
       // Create new record if name is available
       const data = {
         id: trimmedName,
         score: bestTime,
       };
 
-      await pb.collection("quick").create(data);
+      await supabase.from("quick").insert([data]).select();
       alert(
         "Score saved successfully, try and beat your time or click back to home to reset"
       );
@@ -158,13 +187,15 @@ export default function QuickClick() {
               className="p-2 rounded border border-yellow-600 text-gray-600"
               maxLength={15}
             />
-            { !submitetdOnce && <button
-              type="submit"
-              className="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600"
-              onClick={submitScore}
-            >
-              Save Score
-            </button>}
+            {!submitetdOnce && (
+              <button
+                type="submit"
+                className="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600"
+                onClick={submitScore}
+              >
+                Save Score
+              </button>
+            )}
             {submitetdOnce && (
               <button
                 type="submit"

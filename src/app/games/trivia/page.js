@@ -2,8 +2,11 @@
 //trivia
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import PocketBase from "pocketbase";
-const pb = new PocketBase("http://127.0.0.1:8090");
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  "https://blditodpzucmopsgyvus.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+);
 
 //const TRIVIA_API_URL = "https://opentdb.com/api.php?amount=2&type=multiple";
 const retries = 3;
@@ -103,31 +106,50 @@ export default function TriviaGame() {
 
   const submitScore = async (e) => {
     //e.preventDefault();
+    let existingRecord = await supabase.from("trivia").select("*");
     if (!name.trim()) return;
 
     let trimmedName = name.trim();
     if (!trimmedName) return;
+    {
+      if (
+        trimmedName == "vanny" ||
+        trimmedName == "Vanny" ||
+        trimmedName == "VANNY" ||
+        trimmedName == "vanessa" ||
+        trimmedName == "Vanessa" ||
+        trimmedName == "VANESSA"
+      ) {
+        alert("hey hey vanessa :)");
+      }
+      if (
+        trimmedName == "ter" ||
+        trimmedName == "Ter" ||
+        trimmedName == "TER" ||
+        trimmedName == "terence" ||
+        trimmedName == "Terence" ||
+        trimmedName == "TERENCE"
+      ) {
+        alert("kys terence");
+      }
+    }
+    // Check if ID/name already exists
+    if (existingRecord.data.some((record) => record.id == trimmedName)) {
+      alert(
+        "Name already exists, please try another name or update the score instead"
+      );
+      setUpdate(true);
+      return;
+    }
 
     try {
-      // Check if ID/name already exists
-      try {
-        const existingRecord = await pb
-          .collection("trivia")
-          .getOne(trimmedName);
-        alert("This name is already taken! Please choose a different one.");
-        setUpdate(true);
-        return;
-      } catch (error) {
-        if (error.status !== 404) throw error; // Only ignore "not found" errors
-      }
-
       // Create new record if name is available
       const data = {
         id: trimmedName,
         score: score,
       };
 
-      await pb.collection("trivia").create(data);
+      await supabase.from("trivia").insert([data]).select();
       alert("Score saved successfully");
       resetGame();
       console.log("Score saved successfully");
@@ -144,7 +166,11 @@ export default function TriviaGame() {
       score: score,
     };
     try {
-      await pb.collection("trivia").update(trimmedName, data);
+      await supabase
+        .from("snake")
+        .update({ score: score })
+        .eq("id", trimmedName)
+        .select();
       console.log("Score updated successfully");
       resetGame();
     } catch (error) {
@@ -278,7 +304,6 @@ export default function TriviaGame() {
       </div>
     </div>
   );
-
 
   if (error) {
     return (

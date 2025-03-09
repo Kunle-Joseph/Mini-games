@@ -1,9 +1,12 @@
 "use client";
 //trivia game
 import Link from "next/link";
-import PocketBase from "pocketbase";
-const pb = new PocketBase("http://127.0.0.1:8090");
 import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  "https://blditodpzucmopsgyvus.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+);
 
 const GRID_SIZE = 22;
 const CELL_SIZE = 22;
@@ -127,29 +130,48 @@ export default function SnakeGame() {
   }, [moveSnake]);
 
   const submitScore = async () => {
+    let existingRecord = await supabase.from("snake").select("*");
     if (!name.trim()) return;
 
     let trimmedName = name.trim();
     if (!trimmedName) return;
-
-    try {
-      // Check if ID/name already exists
-      try {
-        const existingRecord = await pb.collection("snake").getOne(trimmedName);
-        alert("This name is already taken! Please choose a different one.");
-        setUpdate(true);
-        return;
-      } catch (error) {
-        if (error.status !== 404) throw error; // Only ignore "not found" errors
+    {
+      if (
+        trimmedName == "vanny" ||
+        trimmedName == "Vanny" ||
+        trimmedName == "VANNY" ||
+        trimmedName == "vanessa" ||
+        trimmedName == "Vanessa" ||
+        trimmedName == "VANESSA"
+      ) {
+        alert("hey hey vanessa :)");
       }
-
+      if (
+        trimmedName == "ter" ||
+        trimmedName == "Ter" ||
+        trimmedName == "TER" ||
+        trimmedName == "terence" ||
+        trimmedName == "Terence" ||
+        trimmedName == "TERENCE"
+      ) {
+        alert("kys terence");
+      }
+    }
+    // Check if ID/name already exists
+    if (existingRecord.data.some((record) => record.id == trimmedName)) {
+      alert(
+        "Name already exists, please try another name or update the score instead"
+      );
+      setUpdate(true);
+      return;
+    }
+    try {
       // Create new record if name is available
       const data = {
         id: trimmedName,
         score: score,
       };
-
-      await pb.collection("snake").create(data);
+      await supabase.from("snake").insert([data]).select();
       alert("Score saved successfully");
       resetGame();
       console.log("Score saved successfully");
@@ -166,7 +188,11 @@ export default function SnakeGame() {
       score: score,
     };
     try {
-      await pb.collection("snake").update(trimmedName, data);
+      await supabase
+        .from("snake")
+        .update({ score: score })
+        .eq("id", trimmedName)
+        .select();
       console.log("Score updated successfully");
       setUpdate(false);
       resetGame();
@@ -264,6 +290,35 @@ export default function SnakeGame() {
       </div>
       <div className="mt-4 border-t-2 border-yellow-600 pt-2 font-medium text-yellow-800">
         Use arrow keys to control the snake
+      </div>
+      {/* Added mobile controls */}
+      <div className="fixed bottom-0 left-0 right-0 bg-yellow-200 p-4">
+        <div className="grid grid-cols-3 gap-2 justify-items-center max-w-xs mx-auto">
+          <button
+            onClick={() => direction !== "DOWN" && setDirection("UP")}
+            className="col-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+          >
+            ↑
+          </button>
+          <button
+            onClick={() => direction !== "RIGHT" && setDirection("LEFT")}
+            className="col-start-1 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+          >
+            ←
+          </button>
+          <button
+            onClick={() => direction !== "LEFT" && setDirection("RIGHT")}
+            className="col-start-3 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+          >
+            →
+          </button>
+          <button
+            onClick={() => direction !== "UP" && setDirection("DOWN")}
+            className="col-start-2 row-start-3 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+          >
+            ↓
+          </button>
+        </div>
       </div>
     </div>
   );

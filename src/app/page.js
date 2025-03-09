@@ -43,6 +43,23 @@ export default function Home() {
           View Leaderboard
         </Link>
       </div>
+      <footer className="mt-8 text-center text-yellow-800">
+        <p className="text-sm">
+          Made by KJ (
+          <a
+            href="https://www.linkedin.com/in/olakunle-joseph-3b9782223/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-indigo-900"
+          >
+            Olakunle Joseph
+          </a>
+          ), more games to come. if im not feeling lazy
+        </p>
+        <p className="text-sm mt-2">
+          Also i recommend this on a laptop ideally"
+        </p>
+      </footer>
     </div>
   );
 }
