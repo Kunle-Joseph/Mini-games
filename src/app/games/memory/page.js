@@ -5,10 +5,9 @@ import Link from "next/link";
 import sql from "../../../../db";
 import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(
-  "https://blditodpzucmopsgyvus.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-//TODO: figure out why its call a duplicate name even when theres none
 
 const cardSymbols = ["🎮", "👾", "🕹️", "🎯", "🎲", "🏆", "👻", "🤖"];
 
@@ -98,6 +97,7 @@ export default function MemoryGame() {
   };
 
   const submitScore = async (e) => {
+    let existingRecord = await supabase.from("memory").select("*");
     let trimmedName = name.trim();
     if (!trimmedName) return;
     {

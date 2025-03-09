@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(
-  "https://blditodpzucmopsgyvus.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZGl0b2RwenVjbW9wc2d5dnVzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NTY0NSwiZXhwIjoyMDU3MDQxNjQ1fQ.akkXYkZLQ4tw5xyy1Uv5XZEXo7khCMMvOguO5oEJnzc"
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-
 const GRID_SIZE = 22;
 const CELL_SIZE = 22;
 
@@ -322,5 +321,4 @@ export default function SnakeGame() {
       </div>
     </div>
   );
-
 }

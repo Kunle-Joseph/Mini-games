@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+require("dotenv").config();
 
 export default function Home() {
   return (
