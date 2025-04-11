@@ -1,0 +1,41 @@
+import wordsData from "./words.json";
+
+// Convert words from JSON to a usable format
+
+// For testing
+/*
+const WORDS = [
+  {
+    word: 'sloth bytes',
+    definition: "Oh you don't know what a sloth byte is?",
+    length: 11,
+  },
+];
+*/
+
+export const WORDS = wordsData;
+
+// Check if all words are only alphabet characters and spaces
+const filter_words = WORDS.filter((entry) => entry.word.match(/^[a-zA-Z\s]+$/));
+
+// Function to get a random word from the list
+export const getRandomWord = () => {
+  return filter_words[
+    Math.floor(Math.random() * filter_words.length)
+  ].word.toUpperCase();
+};
+
+// Function to get a word's definition
+export const getWordDefinition = (word) => {
+  const entry = filter_words.find(
+    (entry) => entry.word.toUpperCase() === word.toUpperCase()
+  );
+  return entry ? entry.definition : undefined;
+};
+
+// Function to get words by length
+export const getWordsByLength = (length) => {
+  return filter_words
+    .filter((entry) => entry.length === length)
+    .map((entry) => entry.word.toUpperCase());
+};

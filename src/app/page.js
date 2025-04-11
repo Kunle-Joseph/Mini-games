@@ -34,6 +34,12 @@ export default function Home() {
         >
           <h2 className="text-2xl">Trivia Game</h2>
         </Link>
+        <Link
+          href="/games/wordle"
+          className="bg-yellow-300 hover:bg-yellow-400 text-yellow-900 font-semibold py-3 px-6 rounded-2xl shadow-md transition"
+        >
+          <h2 className="text-2xl">Brain rot Wordle</h2>
+        </Link>
       </div>
 
       <div className="mt-8">

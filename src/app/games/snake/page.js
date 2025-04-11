@@ -1,5 +1,5 @@
 "use client";
-//trivia game
+// trivia game
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
@@ -7,8 +7,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-const GRID_SIZE = 22;
-const CELL_SIZE = 22;
+const GRID_SIZE = 20;
+const CELL_SIZE = 20;
 
 export default function SnakeGame() {
   const [snake, setSnake] = useState([{ x: 10, y: 10 }]);
@@ -58,7 +58,6 @@ export default function SnakeGame() {
 
   const moveSnake = useCallback(() => {
     if (gameOver) return;
-
     const newSnake = [...snake];
     const head = { ...newSnake[0] };
 
@@ -75,6 +74,8 @@ export default function SnakeGame() {
       case "DOWN":
         head.y += 1;
         break;
+      default:
+        break;
     }
 
     if (checkCollision(head)) {
@@ -86,7 +87,6 @@ export default function SnakeGame() {
     }
 
     newSnake.unshift(head);
-
     // Check if food eaten
     if (head.x === food.x && head.y === food.y) {
       setScore(score + 1);
@@ -94,12 +94,15 @@ export default function SnakeGame() {
     } else {
       newSnake.pop();
     }
-
     setSnake(newSnake);
-  }, [snake, direction, food, gameOver, score]);
+  }, [snake, direction, food, gameOver, score, bestScore]);
 
   const handleKeyPress = useCallback(
     (e) => {
+      // Prevent default scrolling behavior for arrow keys
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+      }
       switch (e.key) {
         case "ArrowUp":
           if (direction !== "DOWN") setDirection("UP");
@@ -112,6 +115,8 @@ export default function SnakeGame() {
           break;
         case "ArrowRight":
           if (direction !== "LEFT") setDirection("RIGHT");
+          break;
+        default:
           break;
       }
     },
@@ -131,33 +136,25 @@ export default function SnakeGame() {
   const submitScore = async () => {
     let existingRecord = await supabase.from("snake").select("*");
     if (!name.trim()) return;
-
     let trimmedName = name.trim();
     if (!trimmedName) return;
-    {
-      if (
-        trimmedName == "vanny" ||
-        trimmedName == "Vanny" ||
-        trimmedName == "VANNY" ||
-        trimmedName == "vanessa" ||
-        trimmedName == "Vanessa" ||
-        trimmedName == "VANESSA"
-      ) {
-        alert("hey hey vanessa :)");
-      }
-      if (
-        trimmedName == "ter" ||
-        trimmedName == "Ter" ||
-        trimmedName == "TER" ||
-        trimmedName == "terence" ||
-        trimmedName == "Terence" ||
-        trimmedName == "TERENCE"
-      ) {
-        alert("kys terence");
-      }
+
+    if (
+      ["vanny", "Vanny", "VANNY", "vanessa", "Vanessa", "VANESSA"].includes(
+        trimmedName
+      )
+    ) {
+      alert("hey hey vanessa :)");
     }
-    // Check if ID/name already exists
-    if (existingRecord.data.some((record) => record.id == trimmedName)) {
+    if (
+      ["ter", "Ter", "TER", "terence", "Terence", "TERENCE"].includes(
+        trimmedName
+      )
+    ) {
+      alert("kys terence");
+    }
+    // Check if name already exists
+    if (existingRecord.data.some((record) => record.id === trimmedName)) {
       alert(
         "Name already exists, please try another name or update the score instead"
       );
@@ -165,7 +162,6 @@ export default function SnakeGame() {
       return;
     }
     try {
-      // Create new record if name is available
       const data = {
         id: trimmedName,
         score: score,
@@ -182,10 +178,6 @@ export default function SnakeGame() {
 
   const updateScore = async () => {
     let trimmedName = name.trim();
-    const data = {
-      id: trimmedName,
-      score: score,
-    };
     try {
       await supabase
         .from("snake")
@@ -201,10 +193,10 @@ export default function SnakeGame() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-yellow-200">
+    <div className="min-h-screen flex flex-col items-center bg-yellow-200 pb-8">
       <Link
         href="/"
-        className="inline-block mb-6 text-lg font-semibold text-yellow-800 hover:text-yellow-900"
+        className="inline-block mt-4 mb-6 text-lg font-semibold text-yellow-800 hover:text-yellow-900"
       >
         ← Back to Home
       </Link>
@@ -225,7 +217,7 @@ export default function SnakeGame() {
         {snake.map((segment, index) => (
           <div
             key={index}
-            className="absolute bg-yellow-500 border border-yellow-700"
+            className="absolute bg-yellow-500 border border-yellow-700 z-20"
             style={{
               width: `${CELL_SIZE}px`,
               height: `${CELL_SIZE}px`,
@@ -237,7 +229,7 @@ export default function SnakeGame() {
 
         {/* Food */}
         <div
-          className="absolute bg-yellow-800 border border-yellow-900"
+          className="absolute bg-yellow-800 border border-yellow-900 z-20"
           style={{
             width: `${CELL_SIZE}px`,
             height: `${CELL_SIZE}px`,
@@ -246,23 +238,23 @@ export default function SnakeGame() {
           }}
         />
 
-        {/* Game Over Overlay and Submit */}
+        {/* Game Over Overlay */}
         {gameOver && (
-          <div className="absolute inset-0 flex items-center justify-center bg-yellow-900 bg-opacity-50">
+          <div className="absolute inset-0 flex items-center justify-center bg-yellow-900 bg-opacity-50 z-50">
             <div className="rounded-lg border border-yellow-500 bg-yellow-800 p-4 text-2xl font-bold text-yellow-100">
               Game Over! Score: {score}
-              <div>
+              <div className="mt-4 flex flex-col items-center space-y-2">
                 <input
                   type="text"
                   placeholder="Enter your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 rounded-lg border border-yellow-500 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  className="w-full rounded-lg border border-yellow-500 p-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                   maxLength={15}
                 />
                 <button
                   type="submit"
-                  className="mt-2 mb-4 rounded-lg bg-yellow-500 px-6 py-2 text-white hover:bg-yellow-600 transition"
+                  className="w-full rounded-lg bg-yellow-500 px-6 py-2 text-white hover:bg-yellow-600 transition"
                   onClick={submitScore}
                 >
                   Save Score
@@ -270,7 +262,7 @@ export default function SnakeGame() {
                 {update && (
                   <button
                     type="submit"
-                    className="mt-2 mb-4 rounded-lg bg-yellow-500 px-6 py-2 text-white hover:bg-yellow-600 transition"
+                    className="w-full rounded-lg bg-yellow-500 px-6 py-2 text-white hover:bg-yellow-600 transition"
                     onClick={updateScore}
                   >
                     Update Score
@@ -279,7 +271,7 @@ export default function SnakeGame() {
               </div>
               <button
                 onClick={resetGame}
-                className="block mt-4 rounded border border-yellow-900 px-4 py-2 bg-yellow-600 hover:bg-yellow-700"
+                className="mt-4 block rounded border border-yellow-900 px-4 py-2 bg-yellow-600 hover:bg-yellow-700"
               >
                 Play Again
               </button>
@@ -290,35 +282,37 @@ export default function SnakeGame() {
       <div className="mt-4 border-t-2 border-yellow-600 pt-2 font-medium text-yellow-800">
         Use arrow keys to control the snake
       </div>
-      {/* Added mobile controls */}
-      <div className="fixed bottom-0 left-0 right-0 bg-yellow-200 p-4">
-        <div className="grid grid-cols-3 gap-2 justify-items-center max-w-xs mx-auto">
-          <button
-            onClick={() => direction !== "DOWN" && setDirection("UP")}
-            className="col-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
-          >
-            ↑
-          </button>
-          <button
-            onClick={() => direction !== "RIGHT" && setDirection("LEFT")}
-            className="col-start-1 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
-          >
-            ←
-          </button>
-          <button
-            onClick={() => direction !== "LEFT" && setDirection("RIGHT")}
-            className="col-start-3 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
-          >
-            →
-          </button>
-          <button
-            onClick={() => direction !== "UP" && setDirection("DOWN")}
-            className="col-start-2 row-start-3 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
-          >
-            ↓
-          </button>
+      {/* Mobile Controls Rendered as a block element below the game */}
+      {!gameOver && (
+        <div className="mt-4 bg-yellow-200 p-4">
+          <div className="grid grid-cols-3 gap-2 justify-items-center max-w-xs mx-auto">
+            <button
+              onClick={() => direction !== "DOWN" && setDirection("UP")}
+              className="col-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+            >
+              ↑
+            </button>
+            <button
+              onClick={() => direction !== "RIGHT" && setDirection("LEFT")}
+              className="col-start-1 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+            >
+              ←
+            </button>
+            <button
+              onClick={() => direction !== "LEFT" && setDirection("RIGHT")}
+              className="col-start-3 row-start-2 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+            >
+              →
+            </button>
+            <button
+              onClick={() => direction !== "UP" && setDirection("DOWN")}
+              className="col-start-2 row-start-3 bg-yellow-500 text-yellow-900 p-3 rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
+            >
+              ↓
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
